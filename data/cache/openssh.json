@@ -1,0 +1,37 @@
+[
+  {
+    "id": "CVE-2016-1235",
+    "service": "openssh",
+    "description": "The oarsh script in OAR before 2.5.7 allows remote authenticated users of a cluster to obtain sensitive information and possibly gain privileges via vectors related to OpenSSH options.",
+    "cvss_score": 9.0,
+    "severity": "Critical"
+  },
+  {
+    "id": "CVE-2006-5051",
+    "service": "openssh",
+    "description": "Signal handler race condition in OpenSSH before 4.4 allows remote attackers to cause a denial of service (crash), and possibly execute arbitrary code if GSSAPI authentication is enabled, via unspecified vectors that lead to a double-free.",
+    "cvss_score": 8.1,
+    "severity": "High"
+  },
+  {
+    "id": "CVE-2016-6515",
+    "service": "openssh",
+    "description": "The auth_password function in auth-passwd.c in sshd in OpenSSH before 7.3 does not limit password lengths for password authentication, which allows remote attackers to cause a denial of service (crypt CPU consumption) via a long string.",
+    "cvss_score": 7.8,
+    "severity": "High"
+  },
+  {
+    "id": "CVE-2015-8325",
+    "service": "openssh",
+    "description": "The do_setup_env function in session.c in sshd in OpenSSH through 7.2p2, when the UseLogin feature is enabled and PAM is configured to read .pam_environment files in user home directories, allows local users to gain privileges by triggering a crafted environment for the /bin/login program, as demonstrated by an LD_PRELOAD environment variable.",
+    "cvss_score": 7.2,
+    "severity": "High"
+  },
+  {
+    "id": "CVE-2016-0778",
+    "service": "openssh",
+    "description": "The (1) roaming_read and (2) roaming_write functions in roaming_common.c in the client in OpenSSH 5.x, 6.x, and 7.x before 7.1p2, when certain proxy and forward options are enabled, do not properly maintain connection file descriptors, which allows remote servers to cause a denial of service (heap-based buffer overflow) or possibly have unspecified other impact by requesting many forwardings.",
+    "cvss_score": 4.6,
+    "severity": "Medium"
+  }
+]

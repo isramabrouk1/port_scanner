@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Audit Report — {{ target }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; color: #333; }
+        
+        .header {
+            background: #1a1a2e;
+            color: white;
+            padding: 30px 40px;
+            border-bottom: 4px solid #e94560;
+        }
+        .header h1 { font-size: 24px; margin-bottom: 8px; }
+        .header p  { font-size: 13px; color: #aaa; margin: 2px 0; }
+
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #ddd;
+        }
+        .card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e94560;
+            color: #1a1a2e;
+        }
+
+        /* summary stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #f8f8f8;
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+        .stat-box .number { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+        .stat-box .label  { font-size: 12px; color: #888; margin-top: 4px; }
+
+        /* tables */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            background: #1a1a2e;
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 500;
+        }
+        td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+        tr:hover { background: #fafafa; }
+
+        /* severity badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .Critical { background: #ffe0e0; color: #c0392b; }
+        .High      { background: #fff0e0; color: #e67e22; }
+        .Medium    { background: #fffbe0; color: #d4a017; }
+        .Low       { background: #e0f0e0; color: #27ae60; }
+        .Informational { background: #e8e8e8; color: #666; }
+
+        /* vulnerability blocks */
+        .vuln-block {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .vuln-header {
+            background: #f0f0f0;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vuln-body { padding: 12px 16px; }
+        .cve-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        .cve-row:last-child { border-bottom: none; }
+        .cve-id { font-family: monospace; color: #1a1a2e; font-weight: 600; }
+        .cve-desc { color: #555; flex: 1; margin: 0 12px; }
+
+        .recommendation {
+            background: #f0f7ff;
+            border-left: 4px solid #3498db;
+            padding: 10px 14px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #2c3e50;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .chart-container { max-width: 300px; margin: 0 auto; }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+<!-- SECTION 1: HEADER -->
+<div class="header">
+    <h1>Security Audit Report</h1>
+    <p>Target: {{ target }} ({{ ip }})</p>
+    <p>Scan date: {{ scan_date }}</p>
+    <p>Port range: {{ start_port }} – {{ end_port }}</p>
+    <p>Tool: Python TCP Connect Scanner v1.0</p>
+</div>
+
+<div class="container">
+
+    <!-- SECTION 2: SUMMARY -->
+    <div class="card">
+        <h2>Executive Summary</h2>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="number">{{ total_scanned }}</div>
+                <div class="label">Ports Scanned</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ open_count }}</div>
+                <div class="label">Open Ports</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ critical_count }}</div>
+                <div class="label">Critical Findings</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ high_count }}</div>
+                <div class="label">High Findings</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ total_cves }}</div>
+                <div class="label">Total CVEs Matched</div>
+            </div>
+        </div>
+
+        <!-- risk distribution chart -->
+        <div class="chart-container">
+            <canvas id="riskChart"></canvas>
+        </div>
+    </div>
+
+    <!-- SECTION 3: PORTS AND SERVICES -->
+    <div class="card">
+        <h2>Scan Results — Open Ports and Services</h2>
+        <table>
+            <tr>
+                <th>Port</th>
+                <th>Service</th>
+                <th>Banner</th>
+                <th>Risk Level</th>
+                <th>CVEs Found</th>
+            </tr>
+            {% for port in open_ports %}
+            <tr>
+                <td><strong>{{ port.port }}/tcp</strong></td>
+                <td>{{ port.service }}</td>
+                <td style="font-family:monospace;font-size:12px;">
+                    {{ port.banner[:60] if port.banner else '—' }}
+                </td>
+                <td>
+                    <span class="badge {{ port.risk_level }}">
+                        {{ port.risk_level }}
+                    </span>
+                </td>
+                <td>{{ port.cves | length }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- SECTION 4: VULNERABILITIES -->
+    <div class="card">
+        <h2>Detected Vulnerabilities</h2>
+        {% for port in open_ports %}
+        {% if port.cves %}
+        <div class="vuln-block">
+            <div class="vuln-header">
+                <span>Port {{ port.port }} — {{ port.service }}</span>
+                <span class="badge {{ port.risk_level }}">{{ port.risk_level }} — CVSS {{ port.risk_score }}</span>
+            </div>
+            <div class="vuln-body">
+                {% for cve in port.cves %}
+                <div class="cve-row">
+                    <span class="cve-id">{{ cve.id }}</span>
+                    <span class="cve-desc">{{ cve.description[:80] }}</span>
+                    <span class="badge {{ cve.severity }}">{{ cve.severity }} {{ cve.cvss_score }}</span>
+                </div>
+                {% endfor %}
+                <div class="recommendation">
+                    <strong>Recommendation:</strong> {{ port.recommendation }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- SECTION 5: RISK ASSESSMENT TABLE -->
+    <div class="card">
+        <h2>Risk Assessment</h2>
+        <table>
+            <tr>
+                <th>Port</th>
+                <th>Service</th>
+                <th>Risk Level</th>
+                <th>Highest CVSS</th>
+                <th>Justification</th>
+            </tr>
+            {% for port in open_ports %}
+            <tr>
+                <td>{{ port.port }}</td>
+                <td>{{ port.service }}</td>
+                <td><span class="badge {{ port.risk_level }}">{{ port.risk_level }}</span></td>
+                <td>{{ port.risk_score }}</td>
+                <td>
+                    {% if port.cves %}
+                        Highest matched CVE: {{ port.cves[0].id }}.
+                        {{ port.cves[0].description[:60] }}
+                    {% else %}
+                        No documented vulnerabilities found for this service.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+</div>
+
+<footer>
+    Generated by Python Port Scanner — {{ scan_date }} — For authorized use only
+</footer>
+
+<!-- Chart.js risk distribution -->
+<script>
+    const ctx = document.getElementById('riskChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'High', 'Medium', 'Low', 'Informational'],
+            datasets: [{
+                data: [
+                    {{ critical_count }},
+                    {{ high_count }},
+                    {{ medium_count }},
+                    {{ low_count }},
+                    {{ info_count }}
+                ],
+                backgroundColor: [
+                    '#e74c3c',
+                    '#e67e22',
+                    '#f1c40f',
+                    '#27ae60',
+                    '#95a5a6'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: {
+                    display: true,
+                    text: 'Risk Distribution'
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
